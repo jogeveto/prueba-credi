@@ -1,0 +1,13 @@
+# Ignorar archivos de compilación de Java
+target/
+*.class
+
+# Ignorar archivos de VSCode
+.vscode/
+
+# Ignorar archivos de Maven
+log/
+*.log
+!log/.keep
+*.bak
+*.swp

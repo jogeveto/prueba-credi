@@ -1,0 +1,53 @@
+version: '3.8'
+services:
+  oracle:
+    image: oracleinanutshell/oracle-xe-11g
+    ports:
+      - "1521:1521"
+    environment:
+      - ORACLE_ALLOW_REMOTE=true
+      - ORACLE_DISABLE_ASYNCH_IO=true
+      - ORACLE_PASSWORD=oracle
+      - TZ=UTC
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "echo", "select 1 from dual;" , "|", "sqlplus", "system/oracle@//localhost:1521/xe"]
+      interval: 20s
+      timeout: 10s
+      retries: 10
+      start_period: 40s
+    volumes:
+      - oracle-data:/u01/app/oracle
+
+  card-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "6061:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_DATASOURCE_URL=jdbc:oracle:thin:@oracle:1521:xe
+      - SPRING_DATASOURCE_USERNAME=system
+      - SPRING_DATASOURCE_PASSWORD=oracle
+    depends_on:
+      oracle:
+        condition: service_healthy
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8081/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    restart: unless-stopped
+
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  oracle-data:
